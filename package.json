@@ -1,0 +1,22 @@
+{
+  "author": "Thomas Morgan <tamorgan@outlook.com>",
+  "name": "wasm-brownian-motion",
+  "version": "0.1.0",
+  "repository": "https://github.com/tmorgansl/wasm-brownian-motion",
+  "license": "MIT",
+  "scripts": {
+    "start": "webpack-dev-server -d",
+    "build-dev": "webpack --mode=development",
+    "build-prod": "webpack --mode=production"
+  },
+  "bin": {
+    "create-rust-webpack": ".bin/create-rust-webpack.js"
+  },
+  "devDependencies": {
+    "@wasm-tool/wasm-pack-plugin": "0.2.1",
+    "html-webpack-plugin": "^3.2.0",
+    "webpack": "^4.28.4",
+    "webpack-cli": "^3.2.0",
+    "webpack-dev-server": "^3.1.14"
+  }
+}
