@@ -1,12 +1,12 @@
 # `wasm-brownian-motion`
 
-This is a simple demo of brownian motion using rust and web assembly.
+This is a simple demo of brownian motion using rust and web assembly. You can see a demo of it running on [heroku!](https://wasm-brownian-motion.herokuapp.com/)
 
 ## Introduction
 
 The goal of this project was to have a working demo of a physics simulation using as much rust as possible. All of the presentation layer is managed in rust using the [`web-sys` crate](https://crates.io/crates/web-sys).
 
-This project was templated from the [`rust-webpack-template`](https://github.com/rustwasm/rust-webpack-template) project, please check it out if you're interested in using webpack with wasm.
+This project was templated from the [`rust-webpack-template`](https://github.com/rustwasm/rust-webpack-template) project, please check it out if you're interested in using webpack with web assembly.
 
 ## Prerequisites
 
@@ -27,7 +27,7 @@ To run with a webpack development server, run the following:-
 * `npm i` -- Pull in the necessary dependencies for the frontend to run
 * `npm run start` -- Serves the project locally for development at `http://localhost:8080`
 
-This fully supports hot reloading
+This fully supports hot reloading.
 
 ### Nodejs server
 

@@ -1,6 +1,6 @@
 use crate::particle::Particle;
+use rand::distributions::{Distribution, Normal};
 use rand::prelude::ThreadRng;
-use rand::distributions::{Normal, Distribution};
 use std::time::{Duration, Instant};
 
 pub struct State {
@@ -20,13 +20,19 @@ impl State {
             particles.push(Particle::new([width / 2.0, height / 2.0]));
         }
 
-        State { particles, rng, max_bounds: [width, height], normal_distribution: normal_distribution }
+        State {
+            particles,
+            rng,
+            max_bounds: [width, height],
+            normal_distribution: normal_distribution,
+        }
     }
 
     pub fn tick(&mut self) {
         for particle in self.particles.iter_mut() {
             for i in 0..2 {
-                let new_position = particle.pos()[i] + self.normal_distribution.sample(&mut self.rng);
+                let new_position =
+                    particle.pos()[i] + self.normal_distribution.sample(&mut self.rng);
 
                 if new_position > 0.0 && new_position < self.max_bounds[i] {
                     particle.pos_mut()[i] = new_position;

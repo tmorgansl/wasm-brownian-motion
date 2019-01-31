@@ -8,7 +8,7 @@ extern crate wasm_bindgen;
 extern crate web_sys;
 
 use crate::state::State;
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::f64;
 use std::rc::Rc;
 use wasm_bindgen::prelude::*;
@@ -79,10 +79,15 @@ pub fn start() -> Result<(), JsValue> {
     let height = canvas.height() as f64;
     let mut state = State::new(width, height);
     let js_particle_colour = JsValue::from(PARTICLE_COLOUR);
+    let is_paused = Rc::new(Cell::new(false));
 
+    let is_paused = is_paused.clone();
+    let is_paused_action = is_paused.clone();
     *g.borrow_mut() = Some(Closure::wrap(Box::new(move || {
+        if is_paused.get() {
+            return
+        }
         state.tick();
-
         context.clear_rect(0.0, 0.0, width, height);
 
         let particles = state.particles();
@@ -108,6 +113,14 @@ pub fn start() -> Result<(), JsValue> {
     }) as Box<FnMut()>));
 
     request_animation_frame(g.borrow().as_ref().unwrap());
+    let closure = Closure::wrap(Box::new(move |_event: web_sys::MouseEvent| {
+        is_paused_action.set(!is_paused_action.get());
+        if !is_paused_action.get() {
+            request_animation_frame(g.borrow().as_ref().unwrap());
+        }
+    }) as Box<dyn FnMut(_)>);
+    canvas.add_event_listener_with_callback("click", closure.as_ref().unchecked_ref())?;
+    closure.forget();
 
     Ok(())
 }
