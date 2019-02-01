@@ -14,7 +14,8 @@ use std::rc::Rc;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 
-const PARTICLE_COLOUR: &str = "rgba(256, 0, 0, 1.0)";
+const PARTICLE_COLOUR: &str = "rgba(238, 232, 170, 1.0)";
+const BACKGROUND_COLOUR: &str = "rgba(135, 206, 230, 1.0)";
 const PARTICLE_RADIUS: f64 = 4.0;
 
 fn window() -> web_sys::Window {
@@ -85,7 +86,7 @@ pub fn start() -> Result<(), JsValue> {
     let is_paused_action = is_paused.clone();
     *g.borrow_mut() = Some(Closure::wrap(Box::new(move || {
         if is_paused.get() {
-            return
+            return;
         }
         state.tick();
         context.clear_rect(0.0, 0.0, width, height);
@@ -126,19 +127,34 @@ pub fn start() -> Result<(), JsValue> {
 }
 
 fn create_canvas() -> Result<web_sys::HtmlCanvasElement, JsValue> {
-    let width = web_sys::window()
+    let inner_width = web_sys::window()
         .unwrap()
         .inner_width()
         .unwrap()
         .as_f64()
         .unwrap();
 
-    let height = web_sys::window()
+    let inner_height = web_sys::window()
         .unwrap()
         .inner_height()
         .unwrap()
         .as_f64()
         .unwrap();
+
+    let canvas_container = document().create_element("div").unwrap();
+    let canvas_container: web_sys::HtmlElement = canvas_container
+        .dyn_into::<web_sys::HtmlElement>()
+        .map_err(|_| ())
+        .unwrap();
+
+    let style = canvas_container.style();
+    style.set_property("width", "100%")?;
+    style.set_property("height", "100%")?;
+    style.set_property("display", "flex")?;
+    style.set_property("justify-content", "center")?;
+    style.set_property("align-items", "center")?;
+
+    body().append_child(&canvas_container)?;
 
     let canvas = document().create_element("canvas").unwrap();
     let canvas: web_sys::HtmlCanvasElement = canvas
@@ -146,10 +162,16 @@ fn create_canvas() -> Result<web_sys::HtmlCanvasElement, JsValue> {
         .map_err(|_| ())
         .unwrap();
 
+    let width = inner_width as f64 * 0.95;
+    let height = inner_height as f64 * 0.95;
     canvas.set_width(width as u32);
     canvas.set_height(height as u32);
-    canvas.style().set_property("border", "solid")?;
+    let style = canvas.style();
+    style.set_property("border", "solid")?;
+    style.set_property("max-width", "95%")?;
+    style.set_property("max-height", "95%")?;
+    style.set_property("background-color", BACKGROUND_COLOUR)?;
 
-    body().append_child(&canvas)?;
+    canvas_container.append_child(&canvas)?;
     Ok(canvas)
 }
