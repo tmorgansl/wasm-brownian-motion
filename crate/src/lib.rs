@@ -1,5 +1,6 @@
 mod canvas;
 mod dom;
+mod inputs;
 mod particle;
 mod state;
 
@@ -67,7 +68,9 @@ pub fn start() -> Result<(), JsValue> {
 
     let mut state = State::new(width, height);
     let canvas = Canvas::new(width, height)?;
-    create_elements(&canvas)?;
+
+    let slider = inputs::new_slider();
+    create_elements(&canvas, &slider)?;
 
     let f = Rc::new(RefCell::new(None));
     let g = f.clone();
@@ -83,13 +86,19 @@ pub fn start() -> Result<(), JsValue> {
     let js_particle_colour_fill = JsValue::from(PARTICLE_COLOUR_FILL);
     let js_particle_colour_border = JsValue::from(PARTICLE_COLOUR_BORDER);
     let is_paused = Rc::new(Cell::new(false));
-
-    let is_paused = is_paused.clone();
     let is_paused_action = is_paused.clone();
+
+    let num_particles = Rc::new(Cell::new(state.particles().len()));
+    let num_particles_action = num_particles.clone();
 
     *g.borrow_mut() = Some(Closure::wrap(Box::new(move || {
         if is_paused.get() {
             return;
+        }
+
+        let num_particles_value = num_particles.get();
+        if num_particles_value != state.particles().len() {
+            state.update_num_particles(num_particles_value);
         }
 
         state.tick();
@@ -130,10 +139,24 @@ pub fn start() -> Result<(), JsValue> {
         .add_event_listener_with_callback("click", closure.as_ref().unchecked_ref())?;
     closure.forget();
 
+    let slider_cell = Rc::new(RefCell::new(slider));
+
+    let slider_cell2 = slider_cell.clone();
+
+    let closure = Closure::wrap(Box::new(move |_event: web_sys::InputEvent| {
+        let slider = slider_cell.borrow();
+        let value = slider.value();
+        num_particles_action.set(value.parse::<usize>().unwrap());
+    }) as Box<dyn FnMut(_)>);
+    slider_cell2
+        .borrow_mut()
+        .add_event_listener_with_callback("input", closure.as_ref().unchecked_ref())?;
+    closure.forget();
+
     Ok(())
 }
 
-fn create_elements(canvas: &Canvas) -> Result<(), JsValue> {
+fn create_elements(canvas: &Canvas, slider: &web_sys::HtmlInputElement) -> Result<(), JsValue> {
     let canvas_container = element("div");
     let canvas_container = canvas_container
         .dyn_into::<web_sys::HtmlElement>()
@@ -149,27 +172,16 @@ fn create_elements(canvas: &Canvas) -> Result<(), JsValue> {
 
     body().append_child(&canvas_container)?;
 
-    let inputs = create_inputs()?;
-    canvas_container.append_child(&inputs)?;
-
-    canvas_container.append_child(canvas.html_element())?;
-
-    Ok(())
-}
-
-fn create_inputs() -> Result<web_sys::HtmlElement, JsValue> {
-    let container = element("div");
-    let container = container
+    let input_container = element("div");
+    let input_container = input_container
         .dyn_into::<web_sys::HtmlElement>()
         .map_err(|_| ())
         .unwrap();
 
-    let slider = element("input");
-    let slider = slider
-        .dyn_into::<web_sys::HtmlInputElement>()
-        .map_err(|_| ())
-        .unwrap();
-    slider.set_type("range");
-    container.append_child(&slider)?;
-    Ok(container)
+    input_container.append_child(&slider)?;
+    canvas_container.append_child(&input_container)?;
+
+    canvas_container.append_child(canvas.html_element())?;
+
+    Ok(())
 }

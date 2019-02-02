@@ -40,6 +40,20 @@ impl State {
         }
     }
 
+    pub fn update_num_particles(&mut self, new_size: usize) {
+        let diff = new_size as isize - self.particles.len() as isize;
+        if diff < 0 {
+            self.particles.drain(new_size..);
+        } else {
+            for _ in 1..diff.abs() + 1 {
+                self.particles.push(Particle::new([
+                    self.max_bounds[0] / 2.0,
+                    self.max_bounds[1] / 2.0,
+                ]));
+            }
+        }
+    }
+
     pub fn particles(&self) -> &[Particle] {
         &self.particles
     }

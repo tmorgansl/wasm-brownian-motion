@@ -41,6 +41,7 @@ features = [
   'HtmlElement',
   'HtmlInputElement',
   'MouseEvent',
+  'InputEvent',
   'Node',
   'Window',
 ]
