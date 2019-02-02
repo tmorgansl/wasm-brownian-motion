@@ -14,8 +14,10 @@ use std::rc::Rc;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 
-const PARTICLE_COLOUR: &str = "rgba(238, 232, 170, 1.0)";
+const PARTICLE_COLOUR_FILL: &str = "rgba(238, 232, 170, 1.0)";
+const PARTICLE_COLOUR_BORDER: &str = "rgba(128, 128, 0, 1.0)";
 const BACKGROUND_COLOUR: &str = "rgba(135, 206, 230, 1.0)";
+const BORDER_COLOUR: &str = "rgba(70, 130, 180, 1.0)";
 const PARTICLE_RADIUS: f64 = 4.0;
 
 fn window() -> web_sys::Window {
@@ -79,7 +81,8 @@ pub fn start() -> Result<(), JsValue> {
     let width = canvas.width() as f64;
     let height = canvas.height() as f64;
     let mut state = State::new(width, height);
-    let js_particle_colour = JsValue::from(PARTICLE_COLOUR);
+    let js_particle_colour_fill = JsValue::from(PARTICLE_COLOUR_FILL);
+    let js_particle_colour_border = JsValue::from(PARTICLE_COLOUR_BORDER);
     let is_paused = Rc::new(Cell::new(false));
 
     let is_paused = is_paused.clone();
@@ -105,10 +108,10 @@ pub fn start() -> Result<(), JsValue> {
                     f64::consts::PI * 2.0,
                 )
                 .unwrap();
-
-            context.set_stroke_style(&js_particle_colour);
             context.fill();
-            context.set_fill_style(&js_particle_colour);
+            context.set_fill_style(&js_particle_colour_fill);
+            context.set_stroke_style(&js_particle_colour_border);
+            context.stroke();
         }
         request_animation_frame(f.borrow().as_ref().unwrap());
     }) as Box<FnMut()>));
@@ -171,6 +174,7 @@ fn create_canvas() -> Result<web_sys::HtmlCanvasElement, JsValue> {
     style.set_property("max-width", "95%")?;
     style.set_property("max-height", "95%")?;
     style.set_property("background-color", BACKGROUND_COLOUR)?;
+    style.set_property("border-color", BORDER_COLOUR)?;
 
     canvas_container.append_child(&canvas)?;
     Ok(canvas)
