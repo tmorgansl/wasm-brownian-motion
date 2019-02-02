@@ -1,3 +1,5 @@
+mod canvas;
+mod dom;
 mod particle;
 mod state;
 
@@ -7,6 +9,8 @@ extern crate rand;
 extern crate wasm_bindgen;
 extern crate web_sys;
 
+use crate::canvas::Canvas;
+use crate::dom::{body, element, request_animation_frame};
 use crate::state::State;
 use std::cell::{Cell, RefCell};
 use std::f64;
@@ -16,29 +20,7 @@ use wasm_bindgen::JsCast;
 
 const PARTICLE_COLOUR_FILL: &str = "rgba(238, 232, 170, 1.0)";
 const PARTICLE_COLOUR_BORDER: &str = "rgba(128, 128, 0, 1.0)";
-const BACKGROUND_COLOUR: &str = "rgba(135, 206, 230, 1.0)";
-const BORDER_COLOUR: &str = "rgba(70, 130, 180, 1.0)";
 const PARTICLE_RADIUS: f64 = 4.0;
-
-fn window() -> web_sys::Window {
-    web_sys::window().expect("no global `window` exists")
-}
-
-fn request_animation_frame(f: &Closure<FnMut()>) {
-    window()
-        .request_animation_frame(f.as_ref().unchecked_ref())
-        .expect("should register `requestAnimationFrame` OK");
-}
-
-fn document() -> web_sys::Document {
-    window()
-        .document()
-        .expect("should have a document on window")
-}
-
-fn body() -> web_sys::HtmlElement {
-    document().body().expect("document should have a body")
-}
 
 cfg_if! {
     // When the `console_error_panic_hook` feature is enabled, we can call the
@@ -66,32 +48,52 @@ cfg_if! {
 pub fn start() -> Result<(), JsValue> {
     set_panic_hook();
 
-    let canvas = create_canvas()?;
+    let inner_width = web_sys::window()
+        .unwrap()
+        .inner_width()
+        .unwrap()
+        .as_f64()
+        .unwrap();
+
+    let inner_height = web_sys::window()
+        .unwrap()
+        .inner_height()
+        .unwrap()
+        .as_f64()
+        .unwrap();
+
+    let width = 0.95 * inner_width;
+    let height = 0.95 * inner_height;
+
+    let mut state = State::new(width, height);
+    let canvas = Canvas::new(width, height)?;
+    create_elements(&canvas)?;
 
     let f = Rc::new(RefCell::new(None));
     let g = f.clone();
 
     let context = canvas
+        .html_element()
         .get_context("2d")
         .unwrap()
         .unwrap()
         .dyn_into::<web_sys::CanvasRenderingContext2d>()
         .unwrap();
 
-    let width = canvas.width() as f64;
-    let height = canvas.height() as f64;
-    let mut state = State::new(width, height);
     let js_particle_colour_fill = JsValue::from(PARTICLE_COLOUR_FILL);
     let js_particle_colour_border = JsValue::from(PARTICLE_COLOUR_BORDER);
     let is_paused = Rc::new(Cell::new(false));
 
     let is_paused = is_paused.clone();
     let is_paused_action = is_paused.clone();
+
     *g.borrow_mut() = Some(Closure::wrap(Box::new(move || {
         if is_paused.get() {
             return;
         }
+
         state.tick();
+
         context.clear_rect(0.0, 0.0, width, height);
 
         let particles = state.particles();
@@ -123,29 +125,17 @@ pub fn start() -> Result<(), JsValue> {
             request_animation_frame(g.borrow().as_ref().unwrap());
         }
     }) as Box<dyn FnMut(_)>);
-    canvas.add_event_listener_with_callback("click", closure.as_ref().unchecked_ref())?;
+    canvas
+        .html_element()
+        .add_event_listener_with_callback("click", closure.as_ref().unchecked_ref())?;
     closure.forget();
 
     Ok(())
 }
 
-fn create_canvas() -> Result<web_sys::HtmlCanvasElement, JsValue> {
-    let inner_width = web_sys::window()
-        .unwrap()
-        .inner_width()
-        .unwrap()
-        .as_f64()
-        .unwrap();
-
-    let inner_height = web_sys::window()
-        .unwrap()
-        .inner_height()
-        .unwrap()
-        .as_f64()
-        .unwrap();
-
-    let canvas_container = document().create_element("div").unwrap();
-    let canvas_container: web_sys::HtmlElement = canvas_container
+fn create_elements(canvas: &Canvas) -> Result<(), JsValue> {
+    let canvas_container = element("div");
+    let canvas_container = canvas_container
         .dyn_into::<web_sys::HtmlElement>()
         .map_err(|_| ())
         .unwrap();
@@ -159,23 +149,27 @@ fn create_canvas() -> Result<web_sys::HtmlCanvasElement, JsValue> {
 
     body().append_child(&canvas_container)?;
 
-    let canvas = document().create_element("canvas").unwrap();
-    let canvas: web_sys::HtmlCanvasElement = canvas
-        .dyn_into::<web_sys::HtmlCanvasElement>()
+    let inputs = create_inputs()?;
+    canvas_container.append_child(&inputs)?;
+
+    canvas_container.append_child(canvas.html_element())?;
+
+    Ok(())
+}
+
+fn create_inputs() -> Result<web_sys::HtmlElement, JsValue> {
+    let container = element("div");
+    let container = container
+        .dyn_into::<web_sys::HtmlElement>()
         .map_err(|_| ())
         .unwrap();
 
-    let width = inner_width as f64 * 0.95;
-    let height = inner_height as f64 * 0.95;
-    canvas.set_width(width as u32);
-    canvas.set_height(height as u32);
-    let style = canvas.style();
-    style.set_property("border", "solid")?;
-    style.set_property("max-width", "95%")?;
-    style.set_property("max-height", "95%")?;
-    style.set_property("background-color", BACKGROUND_COLOUR)?;
-    style.set_property("border-color", BORDER_COLOUR)?;
-
-    canvas_container.append_child(&canvas)?;
-    Ok(canvas)
+    let slider = element("input");
+    let slider = slider
+        .dyn_into::<web_sys::HtmlInputElement>()
+        .map_err(|_| ())
+        .unwrap();
+    slider.set_type("range");
+    container.append_child(&slider)?;
+    Ok(container)
 }

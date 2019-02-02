@@ -1,7 +1,6 @@
 use crate::particle::Particle;
 use rand::distributions::{Distribution, Normal};
 use rand::prelude::ThreadRng;
-use std::time::{Duration, Instant};
 
 pub struct State {
     particles: Vec<Particle>,

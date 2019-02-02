@@ -1,5 +1,3 @@
-use rand::Rng;
-
 pub struct Particle {
     pos: [f64; 2],
 }
