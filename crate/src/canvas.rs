@@ -1,13 +1,21 @@
-use crate::dom::element;
-
+use crate::dom::{element, request_animation_frame};
+use crate::state::State;
+use std::cell::{Cell, RefCell};
+use std::f64;
+use std::rc::Rc;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 
 const BACKGROUND_COLOUR: &str = "rgba(135, 206, 230, 1.0)";
 const BORDER_COLOUR: &str = "rgba(70, 130, 180, 1.0)";
+const PARTICLE_COLOUR_FILL: &str = "rgba(238, 232, 170, 1.0)";
+const PARTICLE_COLOUR_BORDER: &str = "rgba(128, 128, 0, 1.0)";
+const PARTICLE_RADIUS: f64 = 4.0;
 
 pub struct Canvas {
     html_element: web_sys::HtmlCanvasElement,
+    width: f64,
+    height: f64,
 }
 
 impl Canvas {
@@ -29,10 +37,86 @@ impl Canvas {
 
         Ok(Canvas {
             html_element: canvas,
+            width,
+            height,
         })
     }
 
     pub fn html_element(&self) -> &web_sys::HtmlCanvasElement {
         &self.html_element
+    }
+
+    pub fn animate(self, mut state: State, num_particles: Rc<Cell<usize>>) -> Result<(), JsValue> {
+        let f = Rc::new(RefCell::new(None));
+        let g = f.clone();
+
+        let context = self
+            .html_element()
+            .get_context("2d")
+            .unwrap()
+            .unwrap()
+            .dyn_into::<web_sys::CanvasRenderingContext2d>()
+            .unwrap();
+
+        let js_particle_colour_fill = JsValue::from(PARTICLE_COLOUR_FILL);
+        let js_particle_colour_border = JsValue::from(PARTICLE_COLOUR_BORDER);
+        let is_paused = Rc::new(Cell::new(false));
+        let is_paused_action = is_paused.clone();
+
+        let self_cell = Rc::new(RefCell::new(self));
+        let self_cell2 = self_cell.clone();
+
+        *g.borrow_mut() = Some(Closure::wrap(Box::new(move || {
+            if is_paused.get() {
+                return;
+            }
+
+            let canvas = self_cell.borrow();
+
+            let num_particles_value = num_particles.get();
+            if num_particles_value != state.particles().len() {
+                state.update_num_particles(num_particles_value);
+            }
+
+            state.tick();
+
+            context.clear_rect(0.0, 0.0, canvas.width, canvas.height);
+
+            let particles = state.particles();
+
+            for particle in particles.iter() {
+                context.begin_path();
+
+                context
+                    .arc(
+                        particle.pos()[0],
+                        particle.pos()[1],
+                        PARTICLE_RADIUS,
+                        0.0,
+                        f64::consts::PI * 2.0,
+                    )
+                    .unwrap();
+                context.fill();
+                context.set_fill_style(&js_particle_colour_fill);
+                context.set_stroke_style(&js_particle_colour_border);
+                context.stroke();
+            }
+            request_animation_frame(f.borrow().as_ref().unwrap());
+        }) as Box<FnMut()>));
+
+        request_animation_frame(g.borrow().as_ref().unwrap());
+        let closure = Closure::wrap(Box::new(move |_event: web_sys::MouseEvent| {
+            is_paused_action.set(!is_paused_action.get());
+            if !is_paused_action.get() {
+                request_animation_frame(g.borrow().as_ref().unwrap());
+            }
+        }) as Box<dyn FnMut(_)>);
+        self_cell2
+            .borrow()
+            .html_element()
+            .add_event_listener_with_callback("click", closure.as_ref().unchecked_ref())?;
+        closure.forget();
+
+        Ok(())
     }
 }

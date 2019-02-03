@@ -11,17 +11,12 @@ extern crate wasm_bindgen;
 extern crate web_sys;
 
 use crate::canvas::Canvas;
-use crate::dom::{body, element, request_animation_frame};
+use crate::dom::{body, element};
 use crate::state::State;
 use std::cell::{Cell, RefCell};
-use std::f64;
 use std::rc::Rc;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
-
-const PARTICLE_COLOUR_FILL: &str = "rgba(238, 232, 170, 1.0)";
-const PARTICLE_COLOUR_BORDER: &str = "rgba(128, 128, 0, 1.0)";
-const PARTICLE_RADIUS: f64 = 4.0;
 
 cfg_if! {
     // When the `console_error_panic_hook` feature is enabled, we can call the
@@ -72,72 +67,10 @@ pub fn start() -> Result<(), JsValue> {
     let slider = inputs::new_slider();
     create_elements(&canvas, &slider)?;
 
-    let f = Rc::new(RefCell::new(None));
-    let g = f.clone();
-
-    let context = canvas
-        .html_element()
-        .get_context("2d")
-        .unwrap()
-        .unwrap()
-        .dyn_into::<web_sys::CanvasRenderingContext2d>()
-        .unwrap();
-
-    let js_particle_colour_fill = JsValue::from(PARTICLE_COLOUR_FILL);
-    let js_particle_colour_border = JsValue::from(PARTICLE_COLOUR_BORDER);
-    let is_paused = Rc::new(Cell::new(false));
-    let is_paused_action = is_paused.clone();
-
     let num_particles = Rc::new(Cell::new(state.particles().len()));
     let num_particles_action = num_particles.clone();
 
-    *g.borrow_mut() = Some(Closure::wrap(Box::new(move || {
-        if is_paused.get() {
-            return;
-        }
-
-        let num_particles_value = num_particles.get();
-        if num_particles_value != state.particles().len() {
-            state.update_num_particles(num_particles_value);
-        }
-
-        state.tick();
-
-        context.clear_rect(0.0, 0.0, width, height);
-
-        let particles = state.particles();
-
-        for particle in particles.iter() {
-            context.begin_path();
-
-            context
-                .arc(
-                    particle.pos()[0],
-                    particle.pos()[1],
-                    PARTICLE_RADIUS,
-                    0.0,
-                    f64::consts::PI * 2.0,
-                )
-                .unwrap();
-            context.fill();
-            context.set_fill_style(&js_particle_colour_fill);
-            context.set_stroke_style(&js_particle_colour_border);
-            context.stroke();
-        }
-        request_animation_frame(f.borrow().as_ref().unwrap());
-    }) as Box<FnMut()>));
-
-    request_animation_frame(g.borrow().as_ref().unwrap());
-    let closure = Closure::wrap(Box::new(move |_event: web_sys::MouseEvent| {
-        is_paused_action.set(!is_paused_action.get());
-        if !is_paused_action.get() {
-            request_animation_frame(g.borrow().as_ref().unwrap());
-        }
-    }) as Box<dyn FnMut(_)>);
-    canvas
-        .html_element()
-        .add_event_listener_with_callback("click", closure.as_ref().unchecked_ref())?;
-    closure.forget();
+    canvas.animate(state, num_particles)?;
 
     let slider_cell = Rc::new(RefCell::new(slider));
 
