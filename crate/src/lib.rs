@@ -66,10 +66,13 @@ pub fn start() -> Result<(), JsValue> {
 
     let num_particles_input = inputs::NumParticlesInput::new()?;
     let speed_input = inputs::SpeedInput::new()?;
+    let pause_input = inputs::PauseInput::new()?;
+
     create_elements(
         &canvas.html_element(),
         &num_particles_input.html_element(),
         &speed_input.html_element(),
+        &pause_input.html_element(),
     )?;
 
     let num_particles = Rc::new(Cell::new(state.particles().len()));
@@ -81,7 +84,13 @@ pub fn start() -> Result<(), JsValue> {
     let speed_action = speed.clone();
 
     speed_input.add_event_listener(speed_action)?;
-    canvas.animate(state, num_particles, speed)?;
+
+    let is_paused = Rc::new(Cell::new(false));
+    let is_paused_action = is_paused.clone();
+
+    pause_input.add_event_listener(is_paused_action)?;
+
+    canvas.animate(state, num_particles, speed, is_paused)?;
 
     Ok(())
 }
@@ -90,12 +99,9 @@ fn create_elements(
     canvas: &web_sys::HtmlCanvasElement,
     num_particle_input: &web_sys::HtmlInputElement,
     speed_input: &web_sys::HtmlInputElement,
+    pause_input: &web_sys::HtmlButtonElement,
 ) -> Result<(), JsValue> {
-    let canvas_container = element("div");
-    let canvas_container = canvas_container
-        .dyn_into::<web_sys::HtmlElement>()
-        .map_err(|_| ())
-        .unwrap();
+    let canvas_container = container_element();
 
     let style = canvas_container.style();
     style.set_property("width", "100%")?;
@@ -106,17 +112,49 @@ fn create_elements(
 
     body().append_child(&canvas_container)?;
 
-    let input_container = element("div");
-    let input_container = input_container
-        .dyn_into::<web_sys::HtmlElement>()
-        .map_err(|_| ())
-        .unwrap();
+    let input_container = container_element();
 
-    input_container.append_child(num_particle_input)?;
-    input_container.append_child(speed_input)?;
+    let style = input_container.style();
+    style.set_property("display", "flex")?;
+    style.set_property("height", "50%")?;
+    style.set_property("flex-direction", "column")?;
+    style.set_property("justify-content", "space-around")?;
+
+    let num_particle_container = container_element();
+
+    let num_particle_title = title_element("Number of Particles")?;
+    num_particle_container.append_child(&num_particle_title)?;
+    num_particle_container.append_child(num_particle_input)?;
+
+    let speed_container = container_element();
+
+    let speed_title = title_element("Particle Speed")?;
+    speed_container.append_child(&speed_title)?;
+    speed_container.append_child(speed_input)?;
+
+    input_container.append_child(pause_input)?;
+    input_container.append_child(&num_particle_container)?;
+    input_container.append_child(&speed_container)?;
     canvas_container.append_child(&input_container)?;
 
     canvas_container.append_child(canvas)?;
 
     Ok(())
+}
+
+fn title_element(title: &str) -> Result<web_sys::HtmlElement, JsValue> {
+    let title_element = container_element();
+    title_element.style().set_property("text-align", "center")?;
+
+    title_element.set_inner_html(title);
+    Ok(title_element)
+}
+
+fn container_element() -> web_sys::HtmlElement {
+    let div = element("div");
+    let div = div
+        .dyn_into::<web_sys::HtmlElement>()
+        .map_err(|_| ())
+        .unwrap();
+    div
 }

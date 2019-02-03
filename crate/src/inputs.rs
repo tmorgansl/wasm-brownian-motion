@@ -1,8 +1,57 @@
 use crate::dom::element;
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
+
+const PAUSE: &str = "Pause";
+const UNPAUSE: &str = "Unpause";
+
+pub struct PauseInput {
+    html_element: web_sys::HtmlButtonElement,
+}
+
+impl PauseInput {
+    pub fn new() -> Result<PauseInput, JsValue> {
+        let button = element("button");
+        let button = button
+            .dyn_into::<web_sys::HtmlButtonElement>()
+            .map_err(|_| ())
+            .unwrap();
+
+        button.set_inner_html(PAUSE);
+
+        Ok(PauseInput {
+            html_element: button,
+        })
+    }
+
+    pub fn html_element(&self) -> &web_sys::HtmlButtonElement {
+        &self.html_element
+    }
+
+    pub fn add_event_listener(&self, is_paused: Rc<Cell<bool>>) -> Result<(), JsValue> {
+        let html_element = self.html_element.clone();
+
+        let rc_html_element = Rc::new(RefCell::new(html_element));
+
+        let closure = Closure::wrap(Box::new(move |_event: web_sys::MouseEvent| {
+            is_paused.set(!is_paused.get());
+            let html_element = rc_html_element.borrow_mut();
+            if is_paused.get() {
+                html_element.set_inner_html(UNPAUSE);
+            } else {
+                html_element.set_inner_html(PAUSE);
+            }
+        }) as Box<dyn FnMut(_)>);
+
+        self.html_element()
+            .add_event_listener_with_callback("click", closure.as_ref().unchecked_ref())?;
+        closure.forget();
+
+        Ok(())
+    }
+}
 
 pub struct SpeedInput {
     html_element: web_sys::HtmlInputElement,

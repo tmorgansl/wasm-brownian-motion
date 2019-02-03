@@ -52,6 +52,7 @@ impl Canvas {
         mut state: State,
         num_particles: Rc<Cell<usize>>,
         speed: Rc<Cell<f64>>,
+        is_paused: Rc<Cell<bool>>,
     ) -> Result<(), JsValue> {
         let f = Rc::new(RefCell::new(None));
         let g = f.clone();
@@ -66,63 +67,50 @@ impl Canvas {
 
         let js_particle_colour_fill = JsValue::from(PARTICLE_COLOUR_FILL);
         let js_particle_colour_border = JsValue::from(PARTICLE_COLOUR_BORDER);
-        let is_paused = Rc::new(Cell::new(false));
-        let is_paused_action = is_paused.clone();
 
         let width = self.width;
         let height = self.height;
 
         *g.borrow_mut() = Some(Closure::wrap(Box::new(move || {
-            if is_paused.get() {
-                return;
-            }
+            if !is_paused.get() {
+                let num_particles_value = num_particles.get();
+                if num_particles_value != state.particles().len() {
+                    state.update_num_particles(num_particles_value);
+                }
 
-            let num_particles_value = num_particles.get();
-            if num_particles_value != state.particles().len() {
-                state.update_num_particles(num_particles_value);
-            }
+                let speed_value = speed.get();
+                if speed_value != state.speed() {
+                    state.update_speed(speed_value);
+                }
 
-            let speed_value = speed.get();
-            if speed_value != state.speed() {
-                state.update_speed(speed_value);
-            }
+                state.tick();
 
-            state.tick();
+                context.clear_rect(0.0, 0.0, width, height);
 
-            context.clear_rect(0.0, 0.0, width, height);
+                let particles = state.particles();
 
-            let particles = state.particles();
+                for particle in particles.iter() {
+                    context.begin_path();
 
-            for particle in particles.iter() {
-                context.begin_path();
-
-                context
-                    .arc(
-                        particle.pos()[0],
-                        particle.pos()[1],
-                        PARTICLE_RADIUS,
-                        0.0,
-                        f64::consts::PI * 2.0,
-                    )
-                    .unwrap();
-                context.fill();
-                context.set_fill_style(&js_particle_colour_fill);
-                context.set_stroke_style(&js_particle_colour_border);
-                context.stroke();
+                    context
+                        .arc(
+                            particle.pos()[0],
+                            particle.pos()[1],
+                            PARTICLE_RADIUS,
+                            0.0,
+                            f64::consts::PI * 2.0,
+                        )
+                        .unwrap();
+                    context.fill();
+                    context.set_fill_style(&js_particle_colour_fill);
+                    context.set_stroke_style(&js_particle_colour_border);
+                    context.stroke();
+                }
             }
             request_animation_frame(f.borrow().as_ref().unwrap());
         }) as Box<FnMut()>));
 
         request_animation_frame(g.borrow().as_ref().unwrap());
-        let closure = Closure::wrap(Box::new(move |_event: web_sys::MouseEvent| {
-            is_paused_action.set(!is_paused_action.get());
-            if !is_paused_action.get() {
-                request_animation_frame(g.borrow().as_ref().unwrap());
-            }
-        }) as Box<dyn FnMut(_)>);
-        self.html_element()
-            .add_event_listener_with_callback("click", closure.as_ref().unchecked_ref())?;
-        closure.forget();
 
         Ok(())
     }

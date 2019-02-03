@@ -1,10 +1,14 @@
 # `wasm-brownian-motion`
 
-This is a simple demo of brownian motion using rust and web assembly. You can see a demo of it running on [heroku!](https://wasm-brownian-motion.herokuapp.com/)
+This is a simple demo of brownian motion using rust and web assembly. You can see a demo of it running on [heroku](https://wasm-brownian-motion.herokuapp.com/).
 
 ## Introduction
 
-The goal of this project was to have a working demo of a physics simulation using as much rust as possible. All of the presentation layer is managed in rust using the [`web-sys` crate](https://crates.io/crates/web-sys).
+The goal of this project was to have a working demo of a basic physics simulation running in the browser to try out web assembly. It is purely a stochastic simulation, meaning that all of the particle motion is described through random variables.
+
+For a large number of particles it will be fairly CPU intensive. It will technically work on mobile devices, however performance will be poor.
+
+Most of the css styling/presentation layer is also handled on the rust side using the [`web-sys` crate](https://crates.io/crates/web-sys).
 
 This project was templated from the [`rust-webpack-template`](https://github.com/rustwasm/rust-webpack-template) project, please check it out if you're interested in using webpack with web assembly.
 
