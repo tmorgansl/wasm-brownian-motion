@@ -58,9 +58,10 @@ impl NumParticlesInput {
             .map_err(|_| ())
             .unwrap();
         slider.set_type("range");
-        slider.set_value("100");
-        slider.set_min("0");
-        slider.set_max("10000");
+        slider.set_value("2");
+        slider.set_min("1");
+        slider.set_max("4");
+        slider.set_step("0.01");
 
         Ok(NumParticlesInput {
             html_element: slider,
@@ -76,7 +77,8 @@ impl NumParticlesInput {
 
         let closure = Closure::wrap(Box::new(move |_event: web_sys::InputEvent| {
             let value = html_element.value();
-            num_particles.set(value.parse::<usize>().unwrap());
+            let power = value.parse::<f64>().unwrap();
+            num_particles.set(10_f64.powf(power) as usize);
         }) as Box<dyn FnMut(_)>);
 
         self.html_element()

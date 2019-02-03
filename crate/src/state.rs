@@ -18,7 +18,7 @@ impl State {
         let speed = 3.0; // standard deviation**2 of the normal distribution
         let normal_distribution = Normal::new(0.0, speed);
 
-        for _ in 1..1000 {
+        for _ in 1..100 {
             particles.push(Particle::new([width / 2.0, height / 2.0]));
         }
 
@@ -49,7 +49,7 @@ impl State {
         if diff < 0 {
             self.particles.drain(new_size..);
         } else {
-            for _ in 1..diff.abs() + 1 {
+            for _ in 0..diff.abs() {
                 self.particles.push(Particle::new([
                     self.max_bounds[0] / 2.0,
                     self.max_bounds[1] / 2.0,
