@@ -12,6 +12,7 @@ const PARTICLE_COLOUR_FILL: &str = "rgba(238, 232, 170, 1.0)";
 const PARTICLE_COLOUR_BORDER: &str = "rgba(128, 128, 0, 1.0)";
 const PARTICLE_RADIUS: f64 = 4.0;
 
+#[derive(Debug, Clone)]
 pub struct Canvas {
     html_element: web_sys::HtmlCanvasElement,
     width: f64,
@@ -46,7 +47,7 @@ impl Canvas {
         &self.html_element
     }
 
-    pub fn animate(self, mut state: State, num_particles: Rc<Cell<usize>>) -> Result<(), JsValue> {
+    pub fn animate(&self, mut state: State, num_particles: Rc<Cell<usize>>) -> Result<(), JsValue> {
         let f = Rc::new(RefCell::new(None));
         let g = f.clone();
 
@@ -63,15 +64,13 @@ impl Canvas {
         let is_paused = Rc::new(Cell::new(false));
         let is_paused_action = is_paused.clone();
 
-        let self_cell = Rc::new(RefCell::new(self));
-        let self_cell2 = self_cell.clone();
+        let width = self.width;
+        let height = self.height;
 
         *g.borrow_mut() = Some(Closure::wrap(Box::new(move || {
             if is_paused.get() {
                 return;
             }
-
-            let canvas = self_cell.borrow();
 
             let num_particles_value = num_particles.get();
             if num_particles_value != state.particles().len() {
@@ -80,7 +79,7 @@ impl Canvas {
 
             state.tick();
 
-            context.clear_rect(0.0, 0.0, canvas.width, canvas.height);
+            context.clear_rect(0.0, 0.0, width, height);
 
             let particles = state.particles();
 
@@ -111,9 +110,7 @@ impl Canvas {
                 request_animation_frame(g.borrow().as_ref().unwrap());
             }
         }) as Box<dyn FnMut(_)>);
-        self_cell2
-            .borrow()
-            .html_element()
+        self.html_element()
             .add_event_listener_with_callback("click", closure.as_ref().unchecked_ref())?;
         closure.forget();
 

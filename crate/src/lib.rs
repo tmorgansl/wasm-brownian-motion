@@ -13,7 +13,7 @@ extern crate web_sys;
 use crate::canvas::Canvas;
 use crate::dom::{body, element};
 use crate::state::State;
-use std::cell::{Cell, RefCell};
+use std::cell::Cell;
 use std::rc::Rc;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
@@ -61,35 +61,25 @@ pub fn start() -> Result<(), JsValue> {
     let width = 0.95 * inner_width;
     let height = 0.95 * inner_height;
 
-    let mut state = State::new(width, height);
+    let state = State::new(width, height);
     let canvas = Canvas::new(width, height)?;
 
-    let slider = inputs::new_slider();
-    create_elements(&canvas, &slider)?;
+    let num_particles_input = inputs::NumParticlesInput::new()?;
+    create_elements(&canvas.html_element(), &num_particles_input.html_element())?;
 
     let num_particles = Rc::new(Cell::new(state.particles().len()));
     let num_particles_action = num_particles.clone();
 
+    num_particles_input.add_event_listener(num_particles_action)?;
     canvas.animate(state, num_particles)?;
-
-    let slider_cell = Rc::new(RefCell::new(slider));
-
-    let slider_cell2 = slider_cell.clone();
-
-    let closure = Closure::wrap(Box::new(move |_event: web_sys::InputEvent| {
-        let slider = slider_cell.borrow();
-        let value = slider.value();
-        num_particles_action.set(value.parse::<usize>().unwrap());
-    }) as Box<dyn FnMut(_)>);
-    slider_cell2
-        .borrow_mut()
-        .add_event_listener_with_callback("input", closure.as_ref().unchecked_ref())?;
-    closure.forget();
 
     Ok(())
 }
 
-fn create_elements(canvas: &Canvas, slider: &web_sys::HtmlInputElement) -> Result<(), JsValue> {
+fn create_elements(
+    canvas: &web_sys::HtmlCanvasElement,
+    slider: &web_sys::HtmlInputElement,
+) -> Result<(), JsValue> {
     let canvas_container = element("div");
     let canvas_container = canvas_container
         .dyn_into::<web_sys::HtmlElement>()
@@ -111,10 +101,10 @@ fn create_elements(canvas: &Canvas, slider: &web_sys::HtmlInputElement) -> Resul
         .map_err(|_| ())
         .unwrap();
 
-    input_container.append_child(&slider)?;
+    input_container.append_child(slider)?;
     canvas_container.append_child(&input_container)?;
 
-    canvas_container.append_child(canvas.html_element())?;
+    canvas_container.append_child(canvas)?;
 
     Ok(())
 }
