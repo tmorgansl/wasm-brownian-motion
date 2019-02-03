@@ -47,7 +47,12 @@ impl Canvas {
         &self.html_element
     }
 
-    pub fn animate(&self, mut state: State, num_particles: Rc<Cell<usize>>) -> Result<(), JsValue> {
+    pub fn animate(
+        &self,
+        mut state: State,
+        num_particles: Rc<Cell<usize>>,
+        speed: Rc<Cell<f64>>,
+    ) -> Result<(), JsValue> {
         let f = Rc::new(RefCell::new(None));
         let g = f.clone();
 
@@ -75,6 +80,11 @@ impl Canvas {
             let num_particles_value = num_particles.get();
             if num_particles_value != state.particles().len() {
                 state.update_num_particles(num_particles_value);
+            }
+
+            let speed_value = speed.get();
+            if speed_value != state.speed() {
+                state.update_speed(speed_value);
             }
 
             state.tick();

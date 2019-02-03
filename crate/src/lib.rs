@@ -65,20 +65,31 @@ pub fn start() -> Result<(), JsValue> {
     let canvas = Canvas::new(width, height)?;
 
     let num_particles_input = inputs::NumParticlesInput::new()?;
-    create_elements(&canvas.html_element(), &num_particles_input.html_element())?;
+    let speed_input = inputs::SpeedInput::new()?;
+    create_elements(
+        &canvas.html_element(),
+        &num_particles_input.html_element(),
+        &speed_input.html_element(),
+    )?;
 
     let num_particles = Rc::new(Cell::new(state.particles().len()));
     let num_particles_action = num_particles.clone();
 
     num_particles_input.add_event_listener(num_particles_action)?;
-    canvas.animate(state, num_particles)?;
+
+    let speed = Rc::new(Cell::new(state.speed()));
+    let speed_action = speed.clone();
+
+    speed_input.add_event_listener(speed_action)?;
+    canvas.animate(state, num_particles, speed)?;
 
     Ok(())
 }
 
 fn create_elements(
     canvas: &web_sys::HtmlCanvasElement,
-    slider: &web_sys::HtmlInputElement,
+    num_particle_input: &web_sys::HtmlInputElement,
+    speed_input: &web_sys::HtmlInputElement,
 ) -> Result<(), JsValue> {
     let canvas_container = element("div");
     let canvas_container = canvas_container
@@ -101,7 +112,8 @@ fn create_elements(
         .map_err(|_| ())
         .unwrap();
 
-    input_container.append_child(slider)?;
+    input_container.append_child(num_particle_input)?;
+    input_container.append_child(speed_input)?;
     canvas_container.append_child(&input_container)?;
 
     canvas_container.append_child(canvas)?;
