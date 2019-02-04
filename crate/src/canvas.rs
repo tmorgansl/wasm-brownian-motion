@@ -31,8 +31,8 @@ impl Canvas {
         canvas.set_height(height as u32);
         let style = canvas.style();
         style.set_property("border", "solid")?;
-        style.set_property("max-width", "95%")?;
-        style.set_property("max-height", "95%")?;
+        style.set_property("max-width", "92%")?;
+        style.set_property("max-height", "92%")?;
         style.set_property("background-color", BACKGROUND_COLOUR)?;
         style.set_property("border-color", BORDER_COLOUR)?;
 
