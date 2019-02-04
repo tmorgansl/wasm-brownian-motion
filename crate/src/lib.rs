@@ -118,6 +118,7 @@ fn create_elements(
     style.set_property("display", "flex")?;
     style.set_property("height", "50%")?;
     style.set_property("flex-direction", "column")?;
+    style.set_property("align-items", "center")?;
     style.set_property("justify-content", "space-around")?;
 
     let num_particle_container = container_element();
@@ -144,7 +145,10 @@ fn create_elements(
 
 fn title_element(title: &str) -> Result<web_sys::HtmlElement, JsValue> {
     let title_element = container_element();
-    title_element.style().set_property("text-align", "center")?;
+
+    let style = title_element.style();
+    style.set_property("text-align", "center")?;
+    style.set_property("align-items", "center")?;
 
     title_element.set_inner_html(title);
     Ok(title_element)

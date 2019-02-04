@@ -6,6 +6,7 @@ use wasm_bindgen::JsCast;
 
 const PAUSE: &str = "Pause";
 const UNPAUSE: &str = "Unpause";
+const BUTTON_COLOUR: &str = "rgba(70, 130, 180, 1.0)";
 
 pub struct PauseInput {
     html_element: web_sys::HtmlButtonElement,
@@ -20,6 +21,17 @@ impl PauseInput {
             .unwrap();
 
         button.set_inner_html(PAUSE);
+
+        let style = button.style();
+        style.set_property("width", "100%")?;
+        style.set_property("background-color", BUTTON_COLOUR)?;
+        style.set_property("color", "white")?;
+        style.set_property("padding", "15px 0px 15px 0px")?;
+        style.set_property("text-align", "center")?;
+        style.set_property("text-decoration", "none")?;
+        style.set_property("border", "none")?;
+        style.set_property("display", "inline-block")?;
+        style.set_property("font-size", "16px")?;
 
         Ok(PauseInput {
             html_element: button,
@@ -70,6 +82,8 @@ impl SpeedInput {
         slider.set_max("10.0");
         slider.set_step("0.1");
 
+        slider.style().set_property("width", "100%")?;
+
         Ok(SpeedInput {
             html_element: slider,
         })
@@ -111,6 +125,8 @@ impl NumParticlesInput {
         slider.set_min("1");
         slider.set_max("4");
         slider.set_step("0.01");
+
+        slider.style().set_property("width", "100%")?;
 
         Ok(NumParticlesInput {
             html_element: slider,
